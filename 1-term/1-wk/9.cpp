@@ -1,10 +1,11 @@
 #include <iostream>
-#include <array>
+#include <vector>
 
 int main() {
-        const int n = 30;
+        int n;
+        std::cin >> n;
         
-        std::array<double, n> har;
+        std::vector<double> har(n);
         for (int i = 1; i <= n; i++) {
                 har[i-1] = 1.0/i;
                 std::cout << i << " "
