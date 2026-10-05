@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
         for (int i = 1; i <= n; i++)
                 output << i << " ";
 
-        output.close()
+        output.close();
 
         return 0;
 }
