@@ -45,6 +45,14 @@ State runge_kutta(State y, double dt) {
         return res;
 }
 
+State backward_euler(State y, double dt) {
+        State res = {y[0] + dt, y[1], y[2]};
+        res[1] = (y[1] + y[2] * dt)/(1 + omega * omega * dt * dt);
+        res[2] = y[2] + dt * f(res[1]);
+
+        return res;
+}
+
 int main(int argc, char *argv[]) {
         if (argc != 2) {
                 std::cout << "Using ./prog settings.json" << std::endl;
@@ -64,8 +72,10 @@ int main(int argc, char *argv[]) {
                 method = euler;
         else if (method_name == "heun")
                 method = heun;
-        else if (method_name == "runge-kutta")
+        else if (method_name == "rk4")
                 method = runge_kutta;
+        else if (method_name == "bw_eu")
+                method = backward_euler;
         else {
                 std::cout << "Unkown method: " << method_name <<
                         std::endl;
@@ -81,6 +91,7 @@ int main(int argc, char *argv[]) {
         State y = {0.0, x0, v0};
 
         double dt = bound/count;
+        output << std::setprecision(17);
         for (int i = 0; i < count; i++) {
                 output << y[0] << ' ' << y[1] << ' ' << y[2] << '\n';
                 y = method(y, dt);
