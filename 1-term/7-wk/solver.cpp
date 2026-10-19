@@ -61,6 +61,17 @@ State kahan_add(State y, State d) {
         return res;
 }
 
+void bin_write(std::ofstream& output, const State& row) {
+        output.write(reinterpret_cast<const char*>(row.data()),
+                     row.size() * sizeof(double));
+}
+
+void csv_write(std::ofstream& output, const State& row) {
+        for (int i = 0; i + 1 < row.size(); i++)
+                output << row[i] << ' ';
+        output << row.back() << '\n';
+}
+
 int main(int argc, char *argv[]) {
         if (argc != 2) {
                 std::cout << "Using ./prog settings.json" << std::endl;
@@ -70,13 +81,11 @@ int main(int argc, char *argv[]) {
         json data = json::parse(settings);
         settings.close();
 
-        auto output_name = data.at("output").get<std::string>();
-        auto method_name = data.at("method").get<std::string>();
-        auto summation_name = data.at("summation").get<std::string>();
         auto bound = data.at("bound").get<double>();
         auto count = data.at("count").get<double>();
 
-        std::function<State(const State& y, const double& dt)> method;
+        auto method_name = data.at("method").get<std::string>();
+        std::function<State(const State&, const double&)> method;
         if (method_name == "euler")
                 method = euler;
         else if (method_name == "heun")
@@ -91,7 +100,8 @@ int main(int argc, char *argv[]) {
                 return 2;
         }
 
-        std::function<State(State y, State d)> summation;
+        auto summation_name = data.at("summation").get<std::string>();
+        std::function<State(State, State)> summation;
         if (summation_name == "simple")
                 summation = simple_add;
         else if (summation_name == "kahan")
@@ -102,20 +112,23 @@ int main(int argc, char *argv[]) {
                 return 2;
         }
         
+        auto output_name = data.at("output").get<std::string>();
+        auto bin_flag = data.at("binary").get<bool>();
+        std::ofstream output(output_name,
+                        bin_flag ? std::ios::binary : std::ios::out);
+        std::function<void(std::ofstream&,const State&)> write =
+                        bin_flag ? bin_write : csv_write;
+        
         omega = data.at("omega").get<double>();
         double x0 = data.at("x0").get<double>();
         double v0 = data.at("v0").get<double>();
-
-        std::ofstream output(output_name, std::ios::binary);
 
         State d = {0, 0};
         State y = {x0, v0};
 
         double dt = bound/count;
         for (int i = 0; i < count; i++) {
-                double row[3] = {i * dt, y[0], y[1]};
-                output.write(reinterpret_cast<const char*>(row),
-                             sizeof(row));
+                write(output, {i * dt, y[0], y[1]});
                 d = method(y, dt);
                 y = summation(y, d);
         }
