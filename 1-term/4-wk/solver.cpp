@@ -14,41 +14,47 @@ double f(double x) {
 
 using State = std::vector<double>;
 
-State euler(State y, double dt) {
-        State res = {y[0] + dt, y[1], y[2]};
-        res[1] = y[1] + y[2] * dt;
-        res[2] = y[2] + f(y[1]) * dt;
-
-        return res;
+// Schemes return delta of current state
+State euler(const State& y, const double& dt) {
+        return {y[1] * dt,
+                f(y[0]) * dt};
 }
 
-State heun(State y, double dt) {
-        State _y = euler(y, dt);
+State heun(const State& y, const double& dt) {
+        State d = euler(y, dt);
         
-        State res = {y[0] + dt, y[1], y[2]};
-        res[1] = y[1] + (y[2] + _y[2]) * dt/2;
-        res[2] = y[2] + (f(y[1]) + f(_y[1])) * dt/2;
-
-        return res;
+        return {(2 * y[1] + d[1]) * dt/2,
+                (f(y[0]) + f(y[0] + d[0])) * dt/2};
 }
 
-State runge_kutta(State y, double dt) {
-        State k1 = {y[2], f(y[1])};
-        State k2 = {y[2] + k1[1] * dt/2, f(y[1] + k1[0] * dt/2)};
-        State k3 = {y[2] + k2[1] * dt/2, f(y[1] + k2[0] * dt/2)};
-        State k4 = {y[2] + k3[1] * dt, f(y[1] + k3[0] * dt)};
+State runge_kutta(const State& y, const double& dt) {
+        State k1 = {y[1], f(y[0])};
+        State k2 = {y[1] + k1[1] * dt/2, f(y[0] + k1[0] * dt/2)};
+        State k3 = {y[1] + k2[1] * dt/2, f(y[0] + k2[0] * dt/2)};
+        State k4 = {y[1] + k3[1] * dt, f(y[0] + k3[0] * dt)};
 
-        State res = {y[0] + dt, y[1], y[2]};
-        res[1] += (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]) * dt/6;
-        res[2] += (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]) * dt/6;
-
-        return res;
+        return {(k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]) * dt/6,
+                (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]) * dt/6};
 }
 
-State backward_euler(State y, double dt) {
-        State res = {y[0] + dt, y[1], y[2]};
-        res[1] = (y[1] + y[2] * dt)/(1 + omega * omega * dt * dt);
-        res[2] = y[2] + dt * f(res[1]);
+State backward_euler(const State& y, const double& dt) {
+        State d = {0, 0};
+        d[0] = (y[1] * dt - y[0] * omega * omega * dt * dt) /
+                (1 + omega * omega * dt * dt);
+        d[1] = dt * f(y[0] + d[0]);
+
+        return d;
+}
+
+State simple_add(State y, State d) {
+        return {y[0] + d[0], y[1] + d[1]};
+}
+
+State c = {0.0, 0.0};
+State kahan_add(State y, State d) {
+        d = {d[0] - c[0], d[1] - c[1]};
+        State res = {y[0] + d[0], y[1] + d[1]};
+        c = {(res[0] - y[0]) - d[0], (res[1] - y[1]) - d[1]};
 
         return res;
 }
@@ -64,10 +70,11 @@ int main(int argc, char *argv[]) {
 
         auto output_name = data.at("output").get<std::string>();
         auto method_name = data.at("method").get<std::string>();
+        auto summation_name = data.at("summation").get<std::string>();
         auto bound = data.at("bound").get<double>();
         auto count = data.at("count").get<double>();
 
-        std::function<State(State y, double dt)> method;
+        std::function<State(const State& y, const double& dt)> method;
         if (method_name == "euler")
                 method = euler;
         else if (method_name == "heun")
@@ -81,6 +88,17 @@ int main(int argc, char *argv[]) {
                         std::endl;
                 return 2;
         }
+
+        std::function<State(State y, State d)> summation;
+        if (summation_name == "simple")
+                summation = simple_add;
+        else if (summation_name == "kahan")
+                summation = kahan_add;
+        else {
+                std::cout << "Unkown summation: " << summation_name <<
+                        std::endl;
+                return 2;
+        }
         
         omega = data.at("omega").get<double>();
         double x0 = data.at("x0").get<double>();
@@ -88,13 +106,15 @@ int main(int argc, char *argv[]) {
 
         std::ofstream output(output_name);
 
-        State y = {0.0, x0, v0};
+        State d = {0, 0};
+        State y = {x0, v0};
 
         double dt = bound/count;
         output << std::setprecision(17);
         for (int i = 0; i < count; i++) {
-                output << y[0] << ' ' << y[1] << ' ' << y[2] << '\n';
-                y = method(y, dt);
+                output << i * dt << ' ' << y[0] << ' ' << y[1] << '\n';
+                d = method(y, dt);
+                y = summation(y, d);
         }
 
         output.close();
