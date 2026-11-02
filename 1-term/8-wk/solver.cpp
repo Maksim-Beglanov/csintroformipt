@@ -29,13 +29,30 @@ void unknown_name(const std::string& type,
         throw std::invalid_argument("Unknown " + type + ": " + name);
 }
 
+void check_file(std::ofstream& file) {
+
+}
+
 int main(int argc, char *argv[]) {
-        if (argc != 2) {
+        if (argc != 2)
                 throw std::invalid_argument(
                         "Expected ./prog \"settings.json\""
                 );
+        std::ifstream settings;
+        try {
+                settings.open(argv[1]);
+        } catch (const std::ios_base::failure&) {
+                throw std::runtime_error(
+                        "Cannot open settings file: " + 
+                        std::string(argv[1])
+                );
         }
-        std::ifstream settings(argv[1]);
+        if (!settings) {
+                throw std::runtime_error(
+                        "No such file exists: " +
+                        std::string(argv[1])
+                );
+        }
         json data = json::parse(settings);
         settings.close();
 
