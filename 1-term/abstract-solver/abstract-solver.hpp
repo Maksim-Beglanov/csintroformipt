@@ -11,7 +11,7 @@ using State = std::vector<double>;
 // Differential equation: dY/dt = F(t, Y)
 class Field {
 public:
-    virtual State operator()(double t,
+    virtual State operator()(const double& t,
                              const State& Y) const = 0;
 
     virtual ~Field() = default;
@@ -21,44 +21,44 @@ public:
 // Returns the increment dY for one time step
 class Scheme {
 public:
-    virtual State operator()(double t,
+    virtual State operator()(const double& t,
                              const State& Y,
                              const Field& F,
-                             double dt) const = 0;
+                             const double& dt) const = 0;
 
     virtual ~Scheme() = default;
 };
 
 class Euler : public Scheme {
 public:
-    State operator()(double t,
+    State operator()(const double& t,
                      const State& Y,
                      const Field& F,
-                     double dt) const override;
+                     const double& dt) const override;
 };
 
 
 class Heun : public Scheme {
 public:
-    State operator()(double t,
+    State operator()(const double& t,
                      const State& Y,
                      const Field& F,
-                     double dt) const override;
+                     const double& dt) const override;
 };
 
 
 class RungeKutta : public Scheme {
 public:
-    State operator()(double t,
+    State operator()(const double& t,
                      const State& Y,
                      const Field& F,
-                     double dt) const override;
+                     const double& dt) const override;
 };
 
 // State update: Y_new = Summation(Y, dY)
 class Summation {
 public:
-    virtual State operator()(const State& Y,
+    virtual State operator()(State& Y,
                              const State& dY) = 0;
 
     virtual ~Summation() = default;
@@ -66,14 +66,14 @@ public:
 
 class NaiveSum : public Summation {
 public:
-    State operator()(const State& Y,
+    State operator()(State& Y,
                      const State& dY) override;
 };
 
 
 class KahanSum : public Summation {
 public:
-    State operator()(const State& Y,
+    State operator()(State& Y,
                      const State& dY) override;
 
 private:
@@ -83,7 +83,7 @@ private:
 // Output interface
 class Dump {
 public:
-    virtual void operator()(double t,
+    virtual void operator()(const double& t,
                             const State& Y,
                             std::ofstream& output) const = 0;
 
@@ -92,7 +92,7 @@ public:
 
 class CSVDump : public Dump {
 public:
-    void operator()(double t,
+    void operator()(const double& t,
                     const State& Y,
                     std::ofstream& output) const override;
 };
@@ -100,7 +100,7 @@ public:
 
 class BinaryDump : public Dump {
 public:
-    void operator()(double t,
+    void operator()(const double& t,
                     const State& Y,
                     std::ofstream& output) const override;
 };
@@ -114,8 +114,8 @@ public:
            const Dump& D);
 
     void solve(std::ofstream& output,
-               double bound,
-               std::size_t count);
+               const double& bound,
+               const std::size_t& count);
 
 private:
     State Y;

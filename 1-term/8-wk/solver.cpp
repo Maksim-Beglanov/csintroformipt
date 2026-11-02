@@ -9,10 +9,10 @@ using json = nlohmann::json;
 
 class PendulumField : public Field {
 public:
-        PendulumField(double omega, double gamma) :
+        PendulumField(const double& omega, const double& gamma) :
                 omega(omega), gamma(gamma) {}
 
-        State operator()(double t, const State& Y) const override {
+        State operator()(const double& t, const State& Y) const override {
                 return {
                         Y[1],
                         -omega * omega * Y[0] - 2 * gamma * Y[1]
@@ -27,10 +27,6 @@ private:
 void unknown_name(const std::string& type,
                                const std::string& name) {
         throw std::invalid_argument("Unknown " + type + ": " + name);
-}
-
-void check_file(std::ofstream& file) {
-
 }
 
 int main(int argc, char *argv[]) {

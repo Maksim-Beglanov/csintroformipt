@@ -14,10 +14,10 @@ void check_sizes(const State& Y, const State& dY) {
 
 }
 
-State Euler::operator()(double t,
+State Euler::operator()(const double& t,
                         const State& Y,
                         const Field& F,
-                        double dt) const {
+                        const double& dt) const {
     State k = F(t, Y);
 
     for (double& value : k)
@@ -26,10 +26,10 @@ State Euler::operator()(double t,
     return k;
 }
 
-State Heun::operator()(double t,
+State Heun::operator()(const double& t,
                        const State& Y,
                        const Field& F,
-                       double dt) const {
+                       const double& dt) const {
     State k1 = F(t, Y);
 
     State buffer(Y.size());
@@ -49,10 +49,10 @@ State Heun::operator()(double t,
     return dY;
 }
 
-State RungeKutta::operator()(double t,
+State RungeKutta::operator()(const double& t,
                              const State& Y,
                              const Field& F,
-                             double dt) const {
+                             const double& dt) const {
     State k1 = F(t, Y);
 
     State buffer(Y.size());
@@ -85,7 +85,7 @@ State RungeKutta::operator()(double t,
     return dY;
 }
 
-State NaiveSum::operator()(const State& Y,
+State NaiveSum::operator()(State& Y,
                            const State& dY) {
     check_sizes(Y, dY);
 
@@ -97,7 +97,7 @@ State NaiveSum::operator()(const State& Y,
     return result;
 }
 
-State KahanSum::operator()(const State& Y,
+State KahanSum::operator()(State& Y,
                            const State& dY) {
     check_sizes(Y, dY);
 
@@ -117,7 +117,7 @@ State KahanSum::operator()(const State& Y,
     return result;
 }
 
-void CSVDump::operator()(double t,
+void CSVDump::operator()(const double& t,
                          const State& Y,
                          std::ofstream& output) const {
     output << t;
@@ -128,7 +128,7 @@ void CSVDump::operator()(double t,
     output << '\n';
 }
 
-void BinaryDump::operator()(double t,
+void BinaryDump::operator()(const double& t,
                             const State& Y,
                             std::ofstream& output) const {
     output.write(
@@ -154,8 +154,8 @@ Solver::Solver(State Y0,
       D(D) {}
 
 void Solver::solve(std::ofstream& output,
-                   double bound,
-                   std::size_t count) {
+                   const double& bound,
+                   const std::size_t& count) {
     if (count == 0)
         throw std::invalid_argument(
             "Number of steps must be positive"
