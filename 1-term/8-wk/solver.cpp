@@ -24,6 +24,41 @@ private:
         double gamma;
 };
 
+class PendulumPhysField : public Field {
+public:
+        PendulumPhysField(const double& omega, const double& gamma) :
+                omega(omega), gamma(gamma) {}
+
+        State operator()(const double& t, const State& Y) const override {
+                return {
+                        Y[1],
+                        -omega * omega * std::sin(Y[0]) - 2 * gamma * Y[1]
+                };
+        }
+
+private:
+        double omega;
+        double gamma;
+};
+
+class PendulumPhysCubedField : public Field {
+public:
+        PendulumPhysCubedField(const double& omega, const double& gamma, const double& gamma3) :
+                omega(omega), gamma(gamma), gamma3(gamma3) {}
+
+        State operator()(const double& t, const State& Y) const override {
+                return {
+                        Y[1],
+                        -omega * omega * std::sin(Y[0]) - gamma * Y[1] - gamma3 * Y[1] * Y[1] * Y[1]
+                };
+        }
+
+private:
+        double omega;
+        double gamma;
+        double gamma3;
+};
+
 void unknown_name(const std::string& type,
                                const std::string& name) {
         throw std::invalid_argument("Unknown " + type + ": " + name);
@@ -84,7 +119,17 @@ int main(int argc, char *argv[]) {
 
         auto omega = data.at("omega").get<double>();
         auto gamma = data.at("gamma").get<double>();
-        PendulumField f(omega, gamma);
+        auto field_type = data.at("field").get<std::string>();
+        std::unique_ptr<Field> f;
+        if (field_type == "classic")
+                f = std::make_unique<PendulumField>(omega, gamma);
+        else if (field_type == "phys")
+                f = std::make_unique<PendulumPhysField>(omega, gamma);
+        else if (field_type == "phys_cubed") {
+                auto gamma3 = data.at("gamma3").get<double>();
+                f = std::make_unique<PendulumPhysCubedField>(omega, gamma, gamma3);
+        } else
+                unknown_name("field", field_type);
 
         double x0 = data.at("x0").get<double>();
         double v0 = data.at("v0").get<double>();
@@ -92,6 +137,6 @@ int main(int argc, char *argv[]) {
         auto bound = data.at("bound").get<double>();
         auto count = data.at("count").get<std::size_t>();
 
-        Solver s({x0, v0}, f, *shm, *smt, *dmp);
+        Solver s({x0, v0}, *f, *shm, *smt, *dmp);
         s.solve(output, bound, count);
 }
