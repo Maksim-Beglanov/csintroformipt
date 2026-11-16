@@ -23,6 +23,8 @@
 *.dll
 *.so.*
 
+# Jupyter notebook
+*.ipynb
 
 # Fortran module files
 *.mod
